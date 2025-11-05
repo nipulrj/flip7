@@ -20,6 +20,7 @@ const cardMap = {
 	'Freeze': { special: 'Freeze', color: 'blue' },
 	'Second Chance': { special: 'Second Chance', color: 'red' },
 	'x2': { add: 'x2', color: 'orange' },
+	'x3': { add: 'x3', color: 'orange' },
 	'+2': { add: '+2', color: 'orange' },
 	'+4': { add: '+4', color: 'orange' },
 	'+6': { add: '+6', color: 'orange' },
