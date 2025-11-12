@@ -1,4 +1,4 @@
-import { Icon, Heart, Zap, SquareArrowUp } from 'lucide-react';
+import { Icon, Heart, Zap, CircleFadingPlus } from 'lucide-react';
 
 export function GameCard({ value, text, color, special, add, back }) {
   const colorStyles = {
@@ -33,7 +33,7 @@ export function GameCard({ value, text, color, special, add, back }) {
     
     let i = null;
     if(special) { i = specialIcons[special]; }
-    if(add) { i = SquareArrowUp }
+    if(add) { i = CircleFadingPlus }
     const Icon = i ? i : null;
 
 

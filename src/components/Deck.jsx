@@ -31,11 +31,21 @@ const cardMap = {
 export function generateDeck() {
 	const deck = [];
 	deck.push(cardMap['0']);
+	// for (let i = 1; i < valueCards.length; i++) {
+	// 	for (let j = 0; j < valueCards[i]; j++) {
+	// 		deck.push(cardMap[valueCards[i]]);
+	// 	}
+	// }
 	for (let i = 1; i < valueCards.length; i++) {
-		for (let j = 0; j < valueCards[i]; j++) {
+		for (let j = 0; j < 1; j++) {
 			deck.push(cardMap[valueCards[i]]);
 		}
 	}
+	// for (let i = 0; i < actionCards.length; i++) {
+	// 	for (let j = 0; j < 10; j++) {
+	// 		deck.push(cardMap[actionCards[i]]);
+	// 	}
+	// }
 	for (let i = 0; i < actionCards.length; i++) {
 		for (let j = 0; j < 3; j++) {
 			deck.push(cardMap[actionCards[i]]);

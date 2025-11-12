@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {generateDeck, shuffleDeck, calculateCardOdds} from './Deck.jsx'
 import {GameCard} from './Card.jsx'
 import { v4 as uuidv4 } from 'uuid';
@@ -13,149 +13,237 @@ function Flip7({handleSetHighScore}) {
   const [currentActionHand, setCurrentActionHand] = useState([]);
   const [actionHand, setActionHand] = useState([]);
   
-  const [currentAdditionalHand, setCurrentAdditionalHand] = useState([]);
-  const [additionalHand, setAdditionalHand] = useState([]);
+  const [currentBonusHand, setCurrentBonusHand] = useState([]);
+  const [bonusHand, setBonusHand] = useState([]);
   
   const [discardPile, setDiscardPile] = useState([]);
   const [deck, setDeck] = useState(generateDeck());
 
   const [busted, setBusted] = useState(false);
   const [flip7, setFlip7] = useState(false);
+  
+  const [flip3, setFlip3] = useState(false);
+  const [frozen, setFrozen] = useState(false);
+  const [secondChance, setSecondChance] = useState(false);
 
-  function handleCardDraw() {
+  useEffect(() => {
+    if(!busted && numberHand.length === 7) {
+      setFlip7(true);
+    }
+  }, [numberHand.length]);
 
-    const currentDeck = [...deck];
-    if (currentDeck.length === 0) {
-      alert("No more cards in the deck!");
-      setDeck(shuffleDeck(...discardPile));
-      handleSetHighScore(total);
-      return;
+  useEffect(() => {
+    let currentRoundTotal = 0;
+    currentRoundTotal = numberHand.reduce((acc, value) => acc + value, 0);
+    
+    bonusHand.forEach(bonus => {
+      if (bonus.startsWith('+')) {
+        currentRoundTotal += Number(bonus.slice(1));
+      }
+    });
+    
+    bonusHand.forEach(bonus => {
+      if (bonus.startsWith('x')) {
+        currentRoundTotal *= Number(bonus.slice(1));
+      }
+    });
+
+    if(flip7) {
+      currentRoundTotal += 15;
     }
 
+    setRoundTotal(currentRoundTotal);
+  }, [numberHand, bonusHand, flip7]);
+
+  function handleCardDraw() {
+    const currentDeck = [...deck];
     const card = currentDeck.pop();
-    const drawnCard = {id: uuidv4(), ...card};
-    console.log(drawnCard);
+    const discardLength = discardPile.length;
+    const drawnCard = { id: uuidv4(), offsetX: (Math.random() * 12 - 6), offsetY: (Math.random() * 12 - 6), rotation: (Math.random() * 10 - 5), zIndex: discardLength, ...card };
+    const secondChancePresent = secondChance;
     setDeck(currentDeck);
 
+    //if number card
     if(drawnCard.value !== undefined) {
+      //if drawing duplicate number
       if(numberHand.includes(drawnCard.value)) {
-        console.log("Busted when drawn: "+drawnCard.value);
-        setCurrentNumberHand([...currentNumberHand, drawnCard]);
-        setRoundTotal(0);
-        setBusted(true);
-      } else if (numberHand.length === 6) {
-        setRoundTotal(roundTotal + drawnCard.value);
-        setCurrentNumberHand([...currentNumberHand, drawnCard]);
-        setNumberHand([...numberHand, drawnCard.value]);
-        handleAdditionalOperation("+15");
-        setFlip7(true);
+        if(secondChancePresent) { //use up Second Chance if present
+          const updatedCurrentActionHand = currentActionHand.filter(card => card.special !== "Second Chance");
+          const updatedActionHand = currentActionHand.filter(card => card !== "Second Chance");
+          setCurrentActionHand(updatedCurrentActionHand);
+          setActionHand(updatedActionHand);
+          setSecondChance(false);
+        } else {
+          console.log("Busted when drawn: "+drawnCard.value);
+          setCurrentNumberHand([...currentNumberHand, drawnCard]);
+          setRoundTotal(0);
+          setBusted(true);
+        }
       } else {
-        setRoundTotal(roundTotal + drawnCard.value);
         setCurrentNumberHand([...currentNumberHand, drawnCard]);
         setNumberHand([...numberHand, drawnCard.value]);
         console.log(`Value card drawn: ${drawnCard.value}`);
       }
     } else if(drawnCard.special !== undefined) {
-      // Handle action cards here
-      if(actionHand.includes(drawnCard.special)) {
-      
+      if(!actionHand.includes(drawnCard.special)) {
+        setCurrentActionHand([...currentActionHand, drawnCard]);
+        setActionHand([...actionHand, drawnCard.special]);
+        if(drawnCard.special === "Second Chance") {
+          setSecondChance(true);
+        }
+      } else {
+        setDiscardPile((discard) => [drawnCard, {...discard, zIndex: discard.length + 1}])
       }
-      setCurrentActionHand([...currentActionHand, drawnCard]);
-      setActionHand([...actionHand, drawnCard.special]);
       console.log(`Action card drawn: ${drawnCard.special}`);
     } else if(drawnCard.add !== undefined) {
-      setCurrentAdditionalHand([...currentAdditionalHand, drawnCard]);
-      setAdditionalHand([...additionalHand, drawnCard.add]);
-      handleAdditionalOperation(drawnCard.add)
-      console.log(`Additional card drawn: ${drawnCard.add}`);
+      setCurrentBonusHand([...currentBonusHand, drawnCard]);
+      setBonusHand([...bonusHand, drawnCard.add]);
+      console.log(`Bonus card drawn: ${drawnCard.add}`);
     }
-  }
 
-  function calculateTotal() {
+    if (currentDeck.length === 0) {
+      const finalScore = total + roundTotal;
+      if(!busted) {
+        console.log(finalScore);
+        handleSetHighScore(finalScore);
+      }
 
-  }
-
-  function handleAdditionalOperation(operation) {
-    const value = parseFloat(operation.slice(1));
-    if (operation.startsWith("+")) {
-      setRoundTotal(roundTotal + value);
-    } else if (operation.startsWith("x")) {
-      setRoundTotal(roundTotal * value);
+      alert("No more cards in the deck, cashing in current hand and resetting deck! Check to see your HIGH SCORE!");
+      handleResetHand(true);
+      setTotal(0);
     }
   }
 
   function handleCashIn() {
     setTotal(total + roundTotal);
-    setDiscardPile([...discardPile, ...currentNumberHand, ...currentActionHand, ...currentAdditionalHand]);
-    
+    handleResetHand();
+  }
+
+  function handleResetHand(reshuffleDeck=false) {
+    setDiscardPile((discard) => {
+      const pile = [...currentNumberHand, ...currentActionHand, ...currentBonusHand, ...discard];
+      if(reshuffleDeck) {
+        setDeck(shuffleDeck(pile));
+        return [];
+      } else {
+        return pile;
+      }
+    });
+
     setCurrentNumberHand([]);
     setNumberHand([]);
 
     setCurrentActionHand([]);
     setActionHand([]);
 
-    setCurrentAdditionalHand([]);
-    setAdditionalHand([]);
+    setCurrentBonusHand([]);
+    setBonusHand([]);
 
     setBusted(false);
     setFlip7(false);
     setRoundTotal(0);
   }
 
-  function handleResetHand() {
-    setDiscardPile([...discardPile, ...currentNumberHand, ...currentActionHand, ...currentAdditionalHand]);
-
-    setCurrentNumberHand([]);
-    setNumberHand([]);
-
-    setCurrentActionHand([]);
-    setActionHand([]);
-
-    setCurrentAdditionalHand([]);
-    setAdditionalHand([]);
-
-    setBusted(false);
-    setFlip7(false);
-    setRoundTotal(0);
-  }
+  const disableDrawCard = flip7 || frozen;
+  const disableCashIn = busted || flip3;
 
   return (
     <>
-      <h1>Flip 7</h1>
-      <div className="h-64 flex items-center justify-center">
-        <GameCard back={true}/>
-      </div>
-      <div>
-        {flip7 && <h2>Congrats you flipped 7 number cards!!!!</h2>}
-        {busted && (
-          <>
-            <h2>Unlucky you BUSTED!!!</h2>
-            <button onClick={handleResetHand}>Reset Hand</button>
-          </>
-        )}
-        {!busted && <button onClick={handleCardDraw}>Draw Card</button>}
-        {(currentNumberHand.length !== 0 || currentActionHand.length !== 0 || currentAdditionalHand.length !== 0) && !busted && <button onClick={handleCashIn}>Cash In</button>}
-        <p>Total: {total}</p>
-        <p>Current Round Total: {roundTotal}</p>
-        <p>Current Hand:</p>
-        {currentNumberHand.length !== 0 && (
-          <div className="h-64 gap-2 flex items-center justify-center">
-            {currentNumberHand.map((card) => {
-              return <GameCard key={card.id} {...card} />
-            })}
-          </div>
-        )}
+      <div className="fixed top-0 left-0 w-full flex flex-col items-center space-y-6 mt-4">
+        <h1 className="text-4xl font-bold">Flip 7</h1>
 
-        {(currentActionHand.length !== 0 || currentAdditionalHand.length !== 0) && (
-          <div className="h-64 gap-2 flex items-center">
-            {currentActionHand.map((card) => {
-              return <GameCard key={card.id} {...card} />
-            })}
-            {currentAdditionalHand.map((card) => {
-              return <GameCard key={card.id} {...card} />
-            })}
+        <div className="flex flex-col">
+          <div className="flex items-center justify-center gap-8">
+            {/* Left side: card back (deck) */}
+            <div className="h-[250px] w-[200px] flex items-center justify-center">
+              <GameCard back={true} />
+            </div>
+
+            {/* Right side: discard pile */}
+            <div className="flex flex-col items-center mb-16">
+              <p className="font-semibold mb-2 text-center">Discard Pile</p>
+              <div className="relative border-2 border-gray-400 rounded-lg min-w-[200px] min-h-[250px] bg-gray-50 flex items-center justify-center">
+                {discardPile.length !== 0 ? (
+                  <div className="relative w-[200px] h-[230px] flex items-center justify-center">
+                    {discardPile.map(card => (
+                      <div key={card.id} className="absolute transition-all duration-300" style={{ transform: `translate(${card.offsetX || 0}px, ${card.offsetY || 0}px) rotate(${card.rotation || 0}deg)`, zIndex: card.zIndex,}}>
+                        <GameCard {...card}/>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-400 italic">No Cards</p>
+                )}
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+
+
+        <div className="flex gap-4">
+          {!busted ? <button onClick={handleCardDraw} className={`px-4 py-2 rounded-lg ${disableDrawCard ? 'bg-gray-500 text-gray' : 'bg-green-500 text-white'}`} disabled={disableDrawCard}>Draw Card</button> : <button onClick={handleResetHand} className="px-4 py-2 bg-blue-500 text-white rounded-lg">Reset Hand</button>}
+          <button onClick={handleCashIn} className={`px-4 py-2 rounded-lg ${disableCashIn ? 'bg-gray-500 text-gray' : 'bg-yellow-500 text-white'}`} disabled={disableCashIn}>Cash In</button>
+        </div>
+
+        <div className="text-center">
+          <p>Total: {total}</p>
+          <p>Current Round Total: {roundTotal}</p>
+        </div>
+
+        <div className="text-center">
+          {flip7 && <h2 className="text-green-500 font-semibold">Congrats you Flipped 7 Number Cards, you get an EXTRA 15 points!!!!</h2>}
+          {busted && <h2 className="text-red-500 font-semibold">Unlucky you BUSTED!!!</h2>}
+        </div>
+      </div>
+
+      <div className="mt-[550px] relative flex flex-col items-center justify-center">
+
+        <div className="flex flex-col items-center mb-16">
+          <p className="font-semibold mb-2">Number Board</p>
+          <div className="border-2 border-gray-400 rounded-lg min-w-[200px] min-h-[250px] flex items-center justify-center bg-gray-50 transition-all duration-300 px-4">
+            {currentNumberHand.length !== 0 ? (
+              <div className="flex flex-nowrap justify-center items-center gap-2">
+                {currentNumberHand.map((card) => (
+                  <GameCard key={card.id} {...card} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-400 italic">No Cards</p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-center gap-20">
+          <div className="flex flex-col items-center">
+            <p className="font-semibold mb-2">Bonus Points Board</p>
+            <div className="border-2 border-gray-400 rounded-lg min-w-[200px] min-h-[250px] flex items-center justify-center bg-gray-50 transition-all duration-300 px-4">
+              {currentBonusHand.length !== 0 ? (
+                <div className="flex flex-nowrap justify-center items-center gap-2">
+                  {currentBonusHand.map((card) => (
+                    <GameCard key={card.id} {...card} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-400 italic">No Cards</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center">
+            <p className="font-semibold mb-2">Action Board</p>
+            <div className="border-2 border-gray-400 rounded-lg min-w-[200px] min-h-[250px] flex items-center justify-center bg-gray-50 transition-all duration-300 px-4">
+              {currentActionHand.length !== 0 ? (
+                <div className="flex flex-nowrap justify-center items-center gap-2">
+                  {currentActionHand.map((card) => (
+                    <GameCard key={card.id} {...card} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-400 italic">No Cards</p>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </>
   )

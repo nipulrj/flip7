@@ -6,12 +6,12 @@ function App() {
   const [highScore, setHighScore] = useState(0);
   const handleSetHighScore = (score) => {
     if(score > highScore) {
-      setHighScore(highScore);
+      setHighScore(score);
     }
   }
   return (
     <>
-      <h1>High Score: {highScore}</h1>
+      <h2 className='fixed top-5 left-200 w-full flex flex-col items-center space-y-6 mt-4'>High Score: {highScore}</h2>
       <Flip7 handleSetHighScore={handleSetHighScore}/>
     </>
   )
