@@ -3,9 +3,10 @@ import {generateDeck, shuffleDeck, calculateCardOdds} from './Deck.jsx'
 import {GameCard} from './Card.jsx'
 import { v4 as uuidv4 } from 'uuid';
 
-function Flip7({handleSetHighScore}) {
+function Flip7() {
   const [total, setTotal] = useState(0)
   const [roundTotal, setRoundTotal] = useState(0);
+  const [highScore, setHighScore] = useState(0);
   
   const [currentNumberHand, setCurrentNumberHand] = useState([]);
   const [numberHand, setNumberHand] = useState([]);
@@ -109,8 +110,7 @@ function Flip7({handleSetHighScore}) {
       }
 
       alert("No more cards in the deck, cashing in current hand and resetting deck! Check to see your HIGH SCORE!");
-      handleResetHand(true);
-      setTotal(0);
+      handleResetDeck();
     }
   }
 
@@ -119,15 +119,10 @@ function Flip7({handleSetHighScore}) {
     handleResetHand();
   }
 
-  function handleResetHand(reshuffleDeck=false) {
+  function handleResetHand() {
     setDiscardPile((discard) => {
       const pile = [...currentNumberHand, ...currentActionHand, ...currentBonusHand, ...discard];
-      if(reshuffleDeck) {
-        setDeck(shuffleDeck(pile));
-        return [];
-      } else {
-        return pile;
-      }
+      return pile;
     });
 
     setCurrentNumberHand([]);
@@ -144,12 +139,44 @@ function Flip7({handleSetHighScore}) {
     setRoundTotal(0);
   }
 
+  function handleResetDeck() {
+    const newDeck = shuffleDeck(generateDeck());
+    setDeck(newDeck);
+    setDiscardPile([]);
+
+    setCurrentNumberHand([]);
+    setNumberHand([]);
+
+    setCurrentActionHand([]);
+    setActionHand([]);
+
+    setCurrentBonusHand([]);
+    setBonusHand([]);
+
+    setBusted(false);
+    setFlip7(false);
+    setRoundTotal(0);
+    setTotal(0);
+  }
+
+  function handleSetHighScore(score) {
+    if(score > highScore) {
+      setHighScore(score);
+    }
+  }
+
   const disableDrawCard = flip7 || frozen;
   const disableCashIn = busted || flip3;
 
   return (
     <>
-      <div className="fixed top-0 left-0 w-full flex flex-col items-center space-y-6 mt-4">
+      <div className="fixed top-10 right-5 w-96 max-w-[90vw] flex items-center justify-between z-50">
+        <h2 className="truncate">Total: {total}</h2>
+        <h2 className="truncate">Current Round Total: {roundTotal}</h2>
+        <h2 className="truncate">High Score: {highScore}</h2>
+      </div>
+
+      <div className="relative top-0 left-0 w-full flex flex-col items-center space-y-6 mt-4">
         <h1 className="text-4xl font-bold">Flip 7</h1>
 
         <div className="flex flex-col">
@@ -186,17 +213,12 @@ function Flip7({handleSetHighScore}) {
         </div>
 
         <div className="text-center">
-          <p>Total: {total}</p>
-          <p>Current Round Total: {roundTotal}</p>
-        </div>
-
-        <div className="text-center">
           {flip7 && <h2 className="text-green-500 font-semibold">Congrats you Flipped 7 Number Cards, you get an EXTRA 15 points!!!!</h2>}
           {busted && <h2 className="text-red-500 font-semibold">Unlucky you BUSTED!!!</h2>}
         </div>
       </div>
 
-      <div className="mt-[550px] relative flex flex-col items-center justify-center">
+      <div className="relative flex flex-col items-center justify-center">
 
         <div className="flex flex-col items-center mb-16">
           <p className="font-semibold mb-2">Number Board</p>

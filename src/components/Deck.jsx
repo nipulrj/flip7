@@ -1,6 +1,7 @@
 const valueCards = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 const actionCards = ["Flip Three", "Second Chance", "Freeze"];
 const plusCards = ['x2', '+2', '+4','+6', '+8', '+10'];
+const debugMode = false;
 
 const cardMap = {
 	'0': { value: 0, text: 'Zero', color: 'blue' },
@@ -31,24 +32,27 @@ const cardMap = {
 export function generateDeck() {
 	const deck = [];
 	deck.push(cardMap['0']);
-	// for (let i = 1; i < valueCards.length; i++) {
-	// 	for (let j = 0; j < valueCards[i]; j++) {
-	// 		deck.push(cardMap[valueCards[i]]);
-	// 	}
-	// }
-	for (let i = 1; i < valueCards.length; i++) {
-		for (let j = 0; j < 1; j++) {
-			deck.push(cardMap[valueCards[i]]);
+	if(debugMode) {
+		for (let i = 1; i < valueCards.length; i++) {
+			for (let j = 0; j < 1; j++) {
+				deck.push(cardMap[valueCards[i]]);
+			}
 		}
-	}
-	// for (let i = 0; i < actionCards.length; i++) {
-	// 	for (let j = 0; j < 10; j++) {
-	// 		deck.push(cardMap[actionCards[i]]);
-	// 	}
-	// }
-	for (let i = 0; i < actionCards.length; i++) {
-		for (let j = 0; j < 3; j++) {
-			deck.push(cardMap[actionCards[i]]);
+		for (let i = 0; i < actionCards.length; i++) {
+			for (let j = 0; j < 10; j++) {
+				deck.push(cardMap[actionCards[i]]);
+			}
+		}
+	} else {
+		for (let i = 1; i < valueCards.length; i++) {
+			for (let j = 0; j < valueCards[i]; j++) {
+				deck.push(cardMap[valueCards[i]]);
+			}
+		}
+		for (let i = 0; i < actionCards.length; i++) {
+			for (let j = 0; j < 3; j++) {
+				deck.push(cardMap[actionCards[i]]);
+			}
 		}
 	}
 	for (let i = 0; i < plusCards.length; i++) {
